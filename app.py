@@ -33,18 +33,26 @@ st.markdown(
     <style>
     [data-testid="stSidebar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
-    /* Tighten outer padding so a HIT-6 / PHQ-9 / GAD-7 / MUCS screen
-       (banner + question + 5 buttons + back/next) fits a phone viewport
-       without scrolling. */
-    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-    h1, h2, h3, h4 { margin-top: 0.25rem !important; margin-bottom: 0.4rem !important; }
-    .stMarkdown { margin-bottom: 0.25rem !important; }
-    /* Compact, tap-friendly buttons. Smaller padding + line-height
-       than the earlier version so all options fit above the fold. */
-    .stButton button { padding: 0.5rem 0.9rem !important; margin: 0.1rem 0 !important; }
+    /* Pull the whole content tight to the top of the viewport so the
+       header doesn't eat half the screen on a phone. Target: brand +
+       banner + question take the top ~1/3, the 5 buttons + back/next
+       fill the lower 2/3 with no scrolling. */
+    .block-container {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    h1, h2, h3, h4 { margin-top: 0.1rem !important; margin-bottom: 0.3rem !important; }
+    .stMarkdown { margin-bottom: 0.15rem !important; }
+    /* Slim, no-text progress bar. */
+    [data-testid="stProgress"] > div > div { height: 5px !important; }
+    [data-testid="stProgress"] { margin: 0.2rem 0 !important; }
+    /* Logo image — strip Streamlit's default margins. */
+    [data-testid="stImage"] { margin: 0 !important; }
+    /* Compact, tap-friendly buttons. */
+    .stButton button { padding: 0.45rem 0.9rem !important; margin: 0.08rem 0 !important; }
     .stButton button p {
-        font-size: 1.1rem !important;
-        line-height: 1.35 !important;
+        font-size: 1.05rem !important;
+        line-height: 1.3 !important;
         margin: 0 !important;
     }
     </style>
@@ -54,13 +62,19 @@ st.markdown(
 
 
 def render_brand_header() -> None:
-    """Logo + app name at the top of every screen."""
+    """Compact logo + app name on a single row at the top of every screen."""
     if LOGO_PATH.exists():
-        col_logo, col_name = st.columns([1, 5])
-        col_logo.image(str(LOGO_PATH), width=72)
-        col_name.markdown(f"## {APP_TITLE}")
+        col_logo, col_name = st.columns([1, 5], vertical_alignment="center")
+        col_logo.image(str(LOGO_PATH), width=56)
+        col_name.markdown(
+            f"<h4 style='margin:0; padding:0;'>{APP_TITLE}</h4>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.markdown(f"## {APP_TITLE}")
+        st.markdown(
+            f"<h4 style='margin:0; padding:0;'>{APP_TITLE}</h4>",
+            unsafe_allow_html=True,
+        )
 
 
 # -------------------- auth gate --------------------
@@ -324,7 +338,7 @@ idx = st.session_state["wizard_idx"]
 step = steps[idx]
 answers = st.session_state["wizard_answers"]
 
-st.progress((idx + 1) / total, text=f"{idx + 1} / {total}")
+st.progress((idx + 1) / total)
 
 if step["kind"] == "review":
     hit6 = [answers.get(f"hit6_{i}") for i in range(6)]
