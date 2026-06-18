@@ -19,6 +19,7 @@ LOGO_PATH = Path(__file__).parent / "assets" / "brainwaves_logo.png"
 
 st.set_page_config(
     page_title="Brainwaves Migraine Research",
+    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else None,
     layout="centered",
     initial_sidebar_state="collapsed",
 )
