@@ -80,7 +80,11 @@ if page == t("nav_new", lang):
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        patient_id = st.text_input(t("patient_id", lang))
+        patient_id = st.text_input(
+            t("patient_id", lang),
+            placeholder="MIG-001",
+            help=t("patient_id_hint", lang),
+        )
     with col2:
         age = st.number_input(t("age", lang), min_value=0, max_value=120, step=1, value=30)
     with col3:
