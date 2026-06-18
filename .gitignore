@@ -1,0 +1,28 @@
+# Patient data — never commit
+migraine_study.db
+migraine_study.db-journal
+*.db
+*.sqlite
+*.sqlite3
+
+# Exports
+*.csv
+*.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.python-version
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
