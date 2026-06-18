@@ -1,15 +1,19 @@
 """
 Questionnaire items in English, Hindi, Marathi.
 
-Notes for the investigator:
-- HIT-6 is owned by QualityMetric; obtain permission for research use.
-  Officially translated versions exist for Hindi and Marathi via IQVIA/QualityMetric.
-- PHQ-9 and GAD-7 are public domain. Validated Hindi versions are available
-  in the literature; Marathi versions have been published but should be
-  cross-checked against the source you cite in your study protocol before
-  collecting real data.
-- Treat the strings below as a working draft. Replace any item text with the
-  exact wording from your validated source as required by your ethics committee.
+Sources:
+- HIT-6: investigator-finalized Marathi wording (locked 2026-06-18).
+  English wording is the standard QualityMetric item set.
+  Hindi is a working draft pending the investigator's validated version.
+  HIT-6 is owned by QualityMetric; obtain permission for research use.
+- PHQ-9 (English / Hindi / Marathi): official India-localized version,
+  Pfizer Inc. educational grant. See assets/PHQ-9_English.pdf,
+  assets/PHQ9_Hindi for India.pdf, assets/PHQ9_Marathi for India.pdf.
+  No permission required to reproduce, translate, display or distribute.
+- GAD-7 (English / Hindi / Marathi): official India-localized version,
+  Pfizer Inc. educational grant. See assets/GAD-7_English.pdf,
+  assets/GAD7_Hindi for India.pdf, assets/GAD7_Marathi for India.pdf.
+  No permission required to reproduce, translate, display or distribute.
 """
 
 LANGUAGES = {"English": "en", "Hindi": "hi", "Marathi": "mr"}
@@ -55,18 +59,21 @@ HIT6_ITEMS = {
 }
 
 # -------------------- PHQ-9 --------------------
+# Official India-localized PHQ-9 (English/Hindi/Marathi).
+# Source: Pfizer Inc. educational grant; "No permission required to reproduce,
+# translate, display or distribute" per the source PDFs.
 # 4 response options, scored 0/1/2/3
 PHQ9_OPTIONS = {
     "en": ["Not at all", "Several days", "More than half the days", "Nearly every day"],
-    "hi": ["बिल्कुल नहीं", "कुछ दिन", "आधे से अधिक दिन", "लगभग हर दिन"],
-    "mr": ["अजिबात नाही", "काही दिवस", "अर्ध्याहून जास्त दिवस", "जवळजवळ रोज"],
+    "hi": ["बिल्कुल नहीं", "कई दिन", "आधे से अधिक दिन", "लगभग हर दिन"],
+    "mr": ["अजिबात नाही", "अनेक दिवस", "अर्ध्याहून अधिक दिवस", "जवळपास प्रत्येक दिवशी"],
 }
 PHQ9_VALUES = [0, 1, 2, 3]
 
 PHQ9_PROMPT = {
     "en": "Over the last 2 weeks, how often have you been bothered by any of the following problems?",
-    "hi": "पिछले 2 हफ्तों में, निम्नलिखित में से कोई समस्या आपको कितनी बार परेशान कर रही है?",
-    "mr": "मागील २ आठवड्यांत, खालीलपैकी कोणत्या समस्यांनी तुम्हाला किती वेळा त्रास दिला आहे?",
+    "hi": "पिछले 2 सप्ताहों में, आप इन समस्याओं में से किसी से भी कितनी बार परेशान रहे/रही हैं?",
+    "mr": "मागील 2 आठवड्यांच्या काळात, आपल्याला खालील पैकी कोणत्याही समस्येमुळे कितीवेळा त्रास झाला आहे?",
 }
 
 PHQ9_ITEMS = {
@@ -78,42 +85,55 @@ PHQ9_ITEMS = {
         "Poor appetite or overeating",
         "Feeling bad about yourself — or that you are a failure or have let yourself or your family down",
         "Trouble concentrating on things, such as reading the newspaper or watching television",
-        "Moving or speaking so slowly that other people could have noticed. Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual",
-        "Thoughts that you would be better off dead, or of hurting yourself in some way",
+        "Moving or speaking so slowly that other people could have noticed? Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual",
+        "Thoughts that you would be better off dead or of hurting yourself in some way",
     ],
     "hi": [
-        "कामों में कम रुचि या आनंद महसूस होना",
-        "उदास, निराश या हताश महसूस करना",
-        "नींद आने में या सोते रहने में परेशानी, या बहुत अधिक सोना",
-        "थका हुआ महसूस करना या ऊर्जा की कमी",
+        "कुछ करने में बहुत कम दिलचस्पी या मज़ा आना",
+        "उदास, अवसादग्रस्त या निराश महसूस करना",
+        "नींद आने या सोये रहने में परेशानी, या फिर बहुत अधिक सोना",
+        "थकान महसूस करना या बहुत कम ऊर्जा होना",
         "भूख कम लगना या ज़्यादा खाना",
-        "खुद के बारे में बुरा महसूस करना — या यह कि आप असफल हैं या आपने अपने या परिवार को निराश किया है",
-        "किसी काम पर ध्यान केंद्रित करने में परेशानी, जैसे अख़बार पढ़ना या टीवी देखना",
-        "इतनी धीरे से चलना या बोलना कि दूसरों ने देखा हो; या इसके विपरीत — इतना बेचैन कि आप सामान्य से बहुत अधिक इधर-उधर घूम रहे हों",
-        "यह विचार आना कि मर जाना बेहतर होगा, या खुद को किसी तरह नुकसान पहुँचाने के विचार",
+        "अपने बारे में बुरा महसूस करना - या ऐसा महसूस करना कि आप नाकाम इंसान हैं और आपने खुद को और अपने परिवार को नीचा दिखाया है",
+        "अखबार पढ़ने या टेलीविज़न देखने जैसी चीज़ों पर ध्यान देने में परेशानी",
+        "इतना धीमे चलना-फिरना या बोलना कि लोगों का ध्यान जाये? या इसका उल्टा - इतना अस्थिर या बेचैन होना कि आप सामान्य से काफ़ी ज़्यादा हिलते-डुलते और चलते-फिरते रहे हैं",
+        "ऐसे विचार कि आप मर जाते तो अच्छा होता या किसी ढंग से ख़ुद को नुक्सान पहुंचाना",
     ],
     "mr": [
-        "कामांमध्ये रुची किंवा आनंद कमी वाटणे",
-        "दुःखी, निराश किंवा हताश वाटणे",
-        "झोप येण्यास किंवा झोपून राहण्यास त्रास, किंवा खूप जास्त झोप येणे",
-        "थकल्यासारखे वाटणे किंवा ऊर्जा कमी असणे",
-        "भूक कमी लागणे किंवा जास्त खाणे",
-        "स्वतःबद्दल वाईट वाटणे — किंवा तुम्ही अपयशी आहात किंवा स्वतःला किंवा कुटुंबाला निराश केले आहे असे वाटणे",
-        "कोणत्याही गोष्टीवर लक्ष केंद्रित करण्यात अडचण, जसे की वर्तमानपत्र वाचणे किंवा टीव्ही पाहणे",
-        "इतके सावकाश चालणे किंवा बोलणे की इतरांच्या लक्षात येईल; किंवा उलट — इतके अस्वस्थ की तुम्ही नेहमीपेक्षा खूप जास्त हालचाल करत असाल",
-        "मरून जाणे बरे होईल असे विचार येणे, किंवा स्वतःला कोणत्याही प्रकारे इजा करण्याचे विचार",
+        "गोष्टी करण्यात थोडीशी रुचि किंवा आनंद",
+        "हताश, उद्वीग्नता, किंवा निराश वाटणे",
+        "झोप लागण्यात किंवा झोपलेले राहण्यात समस्या, किंवा खूप झोप येणे",
+        "थकलेले किंवा थोडी ऊर्जा असल्याचे वाटले",
+        "भूक मंदावणे किंवा अति खाणे",
+        "स्वतःबद्दल वाईट वाटणे — किंवा आपण अपयशी आहोत किंवा आपण स्वतःचा किंवा आपल्या कुटुंबाचा अपेक्षाभंग केला आहे असे वाटणे",
+        "वर्तमानपत्र वाचणे किंवा टेलिव्हिजन पाहणे यासारख्या गोष्टींवर लक्ष एकाग्र करण्यास त्रास होणे",
+        "हालचाल किंवा बोलणे इतके संथ होते की इतर लोकांच्या लक्षात येणे? किंवा याच्या उलट — इतके चिंताक्रांत किंवा अस्वस्थ होणे की आपण सामान्यपेक्षा बरेच अधिक इकडे-तिकडे फिरत आहात",
+        "आपण मेलो असतो तर चांगले झाले असते किंवा स्वतःला काही प्रकाराने जखमी करुन घेण्याचे विचार",
     ],
 }
 
 # -------------------- GAD-7 --------------------
-GAD7_OPTIONS = PHQ9_OPTIONS  # same response set
+# Official India-localized GAD-7 (English/Hindi/Marathi).
+# Source: Pfizer Inc. educational grant; "No permission required to reproduce,
+# translate, display or distribute" per the source PDFs.
+# Note: GAD-7 response options and prompt differ slightly from PHQ-9 in
+# Hindi and Marathi, so they get their own dicts rather than aliasing PHQ-9.
+GAD7_OPTIONS = {
+    "en": ["Not at all", "Several days", "More than half the days", "Nearly every day"],
+    "hi": ["बिल्कुल नहीं", "कई दिनों तक", "आधे से ज्यादा दिनों तक", "लगभग रोज़ाना"],
+    "mr": ["मुळीच नाही", "अनेक दिवस", "अर्ध्याहून अधिक दिवस", "जवळजवळ दररोज"],
+}
 GAD7_VALUES = [0, 1, 2, 3]
 
-GAD7_PROMPT = PHQ9_PROMPT
+GAD7_PROMPT = {
+    "en": "Over the last 2 weeks, how often have you been bothered by the following problems?",
+    "hi": "पिछले 2 सप्ताहों के दौरान, आप निम्नलिखित समस्याओं से कितनी बार परेशान हुए?",
+    "mr": "गेल्या 2 आठवड्यांमध्ये, तुम्हाला खालील समस्यांचा किती वेळा त्रास झाला?",
+}
 
 GAD7_ITEMS = {
     "en": [
-        "Feeling nervous, anxious, or on edge",
+        "Feeling nervous, anxious or on edge",
         "Not being able to stop or control worrying",
         "Worrying too much about different things",
         "Trouble relaxing",
@@ -122,22 +142,22 @@ GAD7_ITEMS = {
         "Feeling afraid as if something awful might happen",
     ],
     "hi": [
-        "घबराहट, चिंता या बेचैनी महसूस करना",
-        "चिंता को रोक पाने या काबू करने में असमर्थ होना",
-        "अलग-अलग बातों की बहुत अधिक चिंता करना",
-        "आराम करने में परेशानी",
-        "इतना बेचैन होना कि एक जगह बैठना मुश्किल हो",
-        "आसानी से चिढ़ना या नाराज़ होना",
-        "ऐसा डर लगना जैसे कुछ भयानक होने वाला है",
+        "बेचैनी, चिंता या तनाव महसूस करना",
+        "चिंता रोकने या नियंत्रित कर सकने में असफल रहना",
+        "विभिन्न चीज़ों के लिए बहुत ज्यादा चिंता करना",
+        "आराम करने मे परेशानी",
+        "इतनी ज्यादा बेचैनी, कि स्थिर बैठना मुश्किल हो जाता है",
+        "आसानी से चिढ़ना या खिजना",
+        "डर महसूस होना कि शायद कुछ बहुत बुरा हो सकता है",
     ],
     "mr": [
-        "घाबरट, चिंताग्रस्त किंवा अस्वस्थ वाटणे",
-        "चिंता थांबवता किंवा नियंत्रित करता न येणे",
-        "वेगवेगळ्या गोष्टींबद्दल जास्त काळजी करणे",
-        "आराम करण्यात अडचण",
-        "इतके अस्वस्थ की एका जागी बसणे कठीण होईल",
-        "सहज चिडचिड किंवा रागावणे",
-        "काहीतरी भयानक घडणार आहे अशी भीती वाटणे",
+        "उदास, चिंताग्रस्त किंवा अतिशय ताणाखाली असणे",
+        "काळजी करण्याचे थांबविण्यास वा त्यावर ताबा ठेवण्यास असमर्थ असणे",
+        "निरनिराळ्या गोष्टींबाबत खूपच काळजी करणे",
+        "आराम करण्यास त्रास होणे",
+        "इतके अस्वस्थ होणे की एका जागेवर बसून राहणे कठीण व्हावे",
+        "चटकन रागावणे किंवा चिडचिड करणे",
+        "काहीतरी अतिशय वाईट घडले की काय अशी भीती वाटणे",
     ],
 }
 

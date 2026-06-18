@@ -47,11 +47,12 @@ clinician alert before save. Don't ignore it.
   intended next step is a paper pilot with 10 consecutive migraine
   patients, asking only "यातला कुठला प्रश्न समजायला कठीण वाटला का?"
   Pilot first, edit later.
-- **Hindi HIT-6, PHQ-9, GAD-7**: working drafts. Replace with the exact
-  wording of whichever validated translation you cite in your study
-  protocol before you collect real data.
+- **PHQ-9 and GAD-7 (English / Hindi / Marathi)**: official India-localized
+  versions, Pfizer Inc. educational grant. Source PDFs are in [assets/](assets/).
+  No permission required to reproduce, translate, display or distribute.
+- **Hindi HIT-6**: working draft pending the investigator's validated version.
 - **HIT-6 licensing**: HIT-6 is © QualityMetric. Obtain permission for
-  research use. PHQ-9 and GAD-7 are public domain.
+  research use.
 
 ## Data location
 
