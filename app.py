@@ -33,10 +33,19 @@ st.markdown(
     <style>
     [data-testid="stSidebar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
-    .stButton button { padding: 0.85rem 1rem !important; }
+    /* Tighten outer padding so a HIT-6 / PHQ-9 / GAD-7 / MUCS screen
+       (banner + question + 5 buttons + back/next) fits a phone viewport
+       without scrolling. */
+    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+    h1, h2, h3, h4 { margin-top: 0.25rem !important; margin-bottom: 0.4rem !important; }
+    .stMarkdown { margin-bottom: 0.25rem !important; }
+    /* Compact, tap-friendly buttons. Smaller padding + line-height
+       than the earlier version so all options fit above the fold. */
+    .stButton button { padding: 0.5rem 0.9rem !important; margin: 0.1rem 0 !important; }
     .stButton button p {
-        font-size: 1.25rem !important;
-        line-height: 1.6 !important;
+        font-size: 1.1rem !important;
+        line-height: 1.35 !important;
+        margin: 0 !important;
     }
     </style>
     """,
@@ -263,13 +272,13 @@ def render_step(step: dict) -> tuple:
         return None, False, False
 
     if kind == "item":
-        # Bold instrument banner at the top so the patient (and clinician)
-        # always knows which questionnaire they're on.
-        st.markdown(f"## {step['section']}")
-        st.caption(f"{step['i'] + 1} of {step['total']}")
+        # Bold instrument banner + counter on a single compact line so the
+        # full screen (banner + question + 5 buttons + back/next) fits a
+        # phone viewport without scrolling.
+        st.markdown(f"**{step['section']} — {step['i'] + 1}/{step['total']}**")
         if step.get("prompt"):
             st.caption(step["prompt"])
-        st.markdown(f"### {step['label']}")
+        st.markdown(f"#### {step['label']}")
         emojis = (
             [] if step.get("no_emoji")
             else EMOJI_BY_OPTION_COUNT.get(len(step["options"]), [])
