@@ -169,9 +169,109 @@ HEADACHE_DAYS_LABEL = {
 }
 
 UNDERSTANDING_LABEL = {
-    "en": "How well do you feel you understand your migraine? (0 = not at all, 10 = completely)",
-    "hi": "आप अपने माइग्रेन को कितनी अच्छी तरह समझते हैं? (0 = बिल्कुल नहीं, 10 = पूरी तरह)",
-    "mr": "तुम्हाला तुमचा मायग्रेन किती चांगल्या प्रकारे समजतो? (0 = अजिबात नाही, 10 = पूर्णपणे)",
+    "en": "How well do you feel you understand your migraine?",
+    "hi": "आप अपने माइग्रेन को कितनी अच्छी तरह समझते हैं?",
+    "mr": "तुम्हाला तुमचा मायग्रेन किती चांगल्या प्रकारे समजतो?",
+}
+
+# -------------------- MUCS --------------------
+# Migraine Understanding & Confidence Scale — a 9-item agree/disagree
+# instrument designed for this study. Three subscales:
+#   - Understanding (items 1-3)
+#   - Control / Self-efficacy (items 4-6)
+#   - Fear / Reassurance (items 7-9, reverse-scored)
+# Marathi wording is from the investigator (2026-06-18). English and Hindi
+# are working drafts — please review before clinical use.
+
+MUCS_PROMPT = {
+    "en": "How much do you agree with this statement?",
+    "hi": "आप इस कथन से कितना सहमत हैं?",
+    "mr": "तुम्ही या विधानाशी किती सहमत आहात?",
+}
+
+# Section titles for the three subscales (shown above their items).
+MUCS_SECTION_TITLES = {
+    "en": ["Understanding", "Control / Self-efficacy", "Fear / Reassurance"],
+    "hi": ["समझ", "नियंत्रण / आत्मविश्वास", "डर / आश्वासन"],
+    "mr": ["समज", "नियंत्रण / आत्मविश्वास", "भीती / आश्वासन"],
+}
+# Which 0-indexed items belong to each section, in order.
+MUCS_SECTION_BOUNDARIES = [(0, 3), (3, 6), (6, 9)]
+
+# Items 7-9 (0-indexed 6-8) are reverse-scored — agreeing with these is
+# the "worse" answer, so the raw value gets flipped at scoring time.
+MUCS_REVERSE = {6, 7, 8}
+
+MUCS_OPTIONS = {
+    # Order: completely disagree → completely agree.
+    "en": [
+        "Strongly disagree",
+        "Somewhat disagree",
+        "Not sure / can't say",
+        "Somewhat agree",
+        "Strongly agree",
+    ],
+    "hi": [
+        "पूरी तरह असहमत",
+        "कुछ हद तक असहमत",
+        "कह नहीं सकते / पता नहीं",
+        "कुछ हद तक सहमत",
+        "पूरी तरह सहमत",
+    ],
+    "mr": [
+        "पूर्णपणे असहमत",
+        "थोडेसे असहमत",
+        "निश्चित नाही / सांगता येत नाही",
+        "थोडेसे सहमत",
+        "पूर्णपणे सहमत",
+    ],
+}
+MUCS_VALUES = [1, 2, 3, 4, 5]
+
+MUCS_ITEMS = {
+    "en": [
+        # Understanding — DRAFT translation, please review.
+        'I know what "migraine" is.',
+        "I know why my headaches happen.",
+        "I know what I can do to reduce my headaches.",
+        # Control / Self-efficacy — DRAFT translation, please review.
+        "I know what to do when a headache starts.",
+        "I feel confident I can handle a headache once it starts.",
+        "I feel I have some degree of control over my migraines.",
+        # Fear / Reassurance (reverse-scored) — DRAFT translation, please review.
+        "I am afraid that a serious brain disease is behind my headaches.",
+        "I am afraid of getting another headache.",
+        "My headaches make me very anxious.",
+    ],
+    "hi": [
+        # Understanding — DRAFT translation, please review.
+        'मुझे पता है कि "माइग्रेन" क्या है।',
+        "मुझे पता है कि मेरा सिरदर्द क्यों होता है।",
+        "मुझे पता है कि सिरदर्द कम करने के लिए मैं क्या कर सकता हूँ।",
+        # Control / Self-efficacy — DRAFT translation, please review.
+        "सिरदर्द शुरू होने पर मुझे पता है कि क्या करना है।",
+        "सिरदर्द शुरू होने पर उसे सँभालने का मुझे आत्मविश्वास है।",
+        "मुझे लगता है कि मेरे माइग्रेन पर मेरा कुछ हद तक नियंत्रण है।",
+        # Fear / Reassurance (reverse-scored) — DRAFT translation, please review.
+        "मुझे डर है कि मेरे सिरदर्द के पीछे कोई गंभीर दिमागी बीमारी है।",
+        "मुझे सिरदर्द होने का डर लगता है।",
+        "मेरे सिरदर्द से मुझे बहुत चिंता होती है।",
+    ],
+    # Marathi wording from the investigator (2026-06-18).
+    "mr": [
+        # समज
+        'मला "मायग्रेन" म्हणजे काय हे माहित आहे.',
+        "मला माझी डोकेदुखी का होते हे माहित आहे.",
+        "मला डोकेदुखी कमी करण्यासाठी काय करता येईल हे माहित आहे.",
+        # नियंत्रण / आत्मविश्वास
+        "डोकेदुखी सुरू झाल्यावर काय करावे हे मला माहित आहे.",
+        "डोकेदुखी सुरू झाल्यावर ती हाताळण्याचा मला आत्मविश्वास आहे.",
+        "मला माझ्या मायग्रेनवर काही प्रमाणात नियंत्रण असल्यासारखे वाटते.",
+        # भीती / आश्वासन (reverse-scored)
+        "माझ्या डोकेदुखीमागे गंभीर मेंदूचा आजार असण्याची भीती मला वाटते.",
+        "मला डोकं दुखायची भीती वाटते.",
+        "माझ्या डोकेदुखीमुळे मला खूप चिंता वाटते.",
+    ],
 }
 
 # UI strings
@@ -212,6 +312,11 @@ UI = {
     "hit6": {"en": "HIT-6 (Headache Impact)", "hi": "HIT-6 (सिरदर्द प्रभाव)", "mr": "HIT-6 (डोकेदुखी प्रभाव)"},
     "phq9": {"en": "PHQ-9 (Depression)", "hi": "PHQ-9 (अवसाद)", "mr": "PHQ-9 (नैराश्य)"},
     "gad7": {"en": "GAD-7 (Anxiety)", "hi": "GAD-7 (चिंता)", "mr": "GAD-7 (चिंता)"},
+    "mucs": {
+        "en": "Now we are checking your understanding of migraine",
+        "hi": "अब हम जाँच रहे हैं कि आप माइग्रेन के बारे में क्या समझते हैं",
+        "mr": "आता आपण तपासत आहोत की तुम्हाला मायग्रेनबद्दल काय समजले आहे",
+    },
     "other": {"en": "Other measures", "hi": "अन्य मापन", "mr": "इतर मापन"},
     "submit": {"en": "Save record", "hi": "रिकॉर्ड सेव करें", "mr": "नोंद जतन करा"},
     "saved": {"en": "Saved.", "hi": "सेव हो गया।", "mr": "जतन झाले."},
@@ -229,4 +334,6 @@ def get_questionnaire(name: str, lang_code: str):
         return PHQ9_ITEMS[lang_code], PHQ9_OPTIONS[lang_code], PHQ9_VALUES, "PHQ9"
     if name == "GAD7":
         return GAD7_ITEMS[lang_code], GAD7_OPTIONS[lang_code], GAD7_VALUES, "GAD7"
+    if name == "MUCS":
+        return MUCS_ITEMS[lang_code], MUCS_OPTIONS[lang_code], MUCS_VALUES, "MUCS"
     raise ValueError(f"Unknown questionnaire: {name}")

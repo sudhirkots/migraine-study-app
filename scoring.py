@@ -53,6 +53,26 @@ def score_gad7(responses: List[int]) -> Tuple[int, str]:
     return total, cat
 
 
+def score_mucs(responses: List[int], reverse_idx=frozenset({6, 7, 8})) -> Tuple[int, str]:
+    """MUCS: 9 items, each 1-5. Items in reverse_idx are reverse-scored
+    (raw 5 → 1, 4 → 2, 3 → 3, 2 → 4, 1 → 5). Total range 9-45;
+    higher = better understanding and confidence, lower fear."""
+    if len(responses) != 9 or any(r is None for r in responses):
+        return 0, "Incomplete"
+    total = 0
+    for i, r in enumerate(responses):
+        total += (6 - r) if i in reverse_idx else r
+    if total <= 18:
+        cat = "Very low"
+    elif total <= 27:
+        cat = "Low"
+    elif total <= 36:
+        cat = "Moderate"
+    else:
+        cat = "High"
+    return total, cat
+
+
 def phq9_suicidality_flag(responses: List[int]) -> bool:
     """Item 9 ≥ 1 means any suicidal ideation in the past 2 weeks — flag for review."""
     if len(responses) < 9 or responses[8] is None:

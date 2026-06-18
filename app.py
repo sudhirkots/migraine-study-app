@@ -1,13 +1,12 @@
-"""Migraine clinic research app — Streamlit MVP.
+"""Brainwaves Migraine Research App — Streamlit data-entry wizard.
 
 Run:
     streamlit run app.py
 """
 
 from datetime import date
-from io import BytesIO
+from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 import database as db
@@ -15,33 +14,83 @@ import questionnaires as Q
 import scoring
 
 
-st.set_page_config(page_title="Migraine Clinic Research", layout="centered")
+APP_TITLE = "Brainwaves Migraine Research App"
+LOGO_PATH = Path(__file__).parent / "assets" / "brainwaves_logo.png"
+
+st.set_page_config(
+    page_title="Brainwaves Migraine Research",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
+# Hide the sidebar and its collapse control entirely — the patient-facing
+# flow is the whole app. Also bump wizard buttons to a larger size so the
+# face emojis on the understanding question (and tap targets in general)
+# are comfortable on a phone.
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    .stButton button { padding: 0.85rem 1rem !important; }
+    .stButton button p {
+        font-size: 1.25rem !important;
+        line-height: 1.6 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def render_brand_header() -> None:
+    """Logo + app name at the top of every screen."""
+    if LOGO_PATH.exists():
+        col_logo, col_name = st.columns([1, 5])
+        col_logo.image(str(LOGO_PATH), width=72)
+        col_name.markdown(f"## {APP_TITLE}")
+    else:
+        st.markdown(f"## {APP_TITLE}")
+
+
+# -------------------- auth gate --------------------
+def _require_password() -> None:
+    """Block the app behind a shared password held in st.secrets.
+
+    Set APP_PASSWORD in .streamlit/secrets.toml locally, and in the
+    Streamlit Cloud secrets UI for the deployed app.
+    """
+    expected = st.secrets.get("APP_PASSWORD")
+    if not expected:
+        st.error(
+            "APP_PASSWORD is not configured in Streamlit secrets. "
+            "Add it before using the app."
+        )
+        st.stop()
+
+    if st.session_state.get("_auth_ok"):
+        return
+
+    render_brand_header()
+    pw = st.text_input("Password", type="password")
+    if st.button("Sign in", type="primary"):
+        if pw == expected:
+            st.session_state["_auth_ok"] = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    st.stop()
+
+
+_require_password()
 db.init_db()
+render_brand_header()
 
 
 # -------------------- helpers --------------------
 def t(key: str, lang: str) -> str:
     """Lookup a UI string by key for the chosen language."""
     return Q.UI[key][lang]
-
-
-def render_questionnaire(name: str, lang: str, key_prefix: str):
-    """Render a radio-button questionnaire. Returns list[int] of selected values."""
-    items, options, values, _ = Q.get_questionnaire(name, lang)
-    responses = []
-    for i, item in enumerate(items):
-        st.markdown(f"**{i + 1}. {item}**")
-        choice = st.radio(
-            label=f"{name}_{i}",
-            options=list(range(len(options))),
-            format_func=lambda j, _opts=options: _opts[j],
-            key=f"{key_prefix}_{name}_{i}",
-            horizontal=True,
-            label_visibility="collapsed",
-            index=None,
-        )
-        responses.append(values[choice] if choice is not None else None)
-    return responses
 
 
 def severity_color(category: str) -> str:
@@ -57,87 +106,233 @@ def severity_color(category: str) -> str:
     return "#6b7280"
 
 
-# -------------------- sidebar --------------------
-with st.sidebar:
-    lang_label = st.selectbox(
-        "Language / भाषा / भाषा",
-        list(Q.LANGUAGES.keys()),
-        index=0,
-    )
-    lang = Q.LANGUAGES[lang_label]
+# -------------------- visit-type localization --------------------
+# Conversational question + short button labels per language. The values
+# list is the canonical English used for storage (so cross-language data
+# merges cleanly and the baseline-vs-follow-up logic stays simple).
+VISIT_PROMPT = {
+    "en": "Are you a new patient or is this a follow-up visit?",
+    "hi": "आप पहली बार आए हैं या यह आपने पहले डॉक्टर साहब को बता के अब फिर से दिखाने आए हैं?",
+    "mr": "तुम्ही पहिल्यांदा पेशंट म्हणून आले आहात का? ही तुमची दुसरी किंवा तिसरी भेट आहे का?",
+}
+VISIT_BUTTONS = {
+    "en": ["New patient (first visit)", "Follow-up visit"],
+    "hi": ["पहली बार", "फॉलो-अप"],
+    "mr": ["पहिल्यांदा", "फॉलो-अप"],
+}
+VISIT_STORAGE = ["Baseline", "Follow-up"]
 
-    st.title(t("title", lang))
-    page = st.radio(
-        "Navigation",
-        [t("nav_new", lang), t("nav_followup", lang), t("nav_export", lang)],
-        label_visibility="collapsed",
-    )
+# Emoji prefixes for validated instruments. The option lists are ordered
+# from least → most severe, so the emoji ramp is best (😊) → worst (😕).
+# MUCS uses agree/disagree wording and is rendered without emoji
+# (see build_steps) to avoid emotional-valence confusion on reverse-scored items.
+EMOJI_BY_OPTION_COUNT = {
+    4: ["😊", "🙂", "🤔", "😕"],          # PHQ-9, GAD-7
+    5: ["😊", "🙂", "😐", "🤔", "😕"],     # HIT-6
+}
 
 
-# -------------------- page: new record --------------------
-if page == t("nav_new", lang):
-    st.header(t("nav_new", lang))
+# -------------------- wizard helpers --------------------
+def _reset_wizard():
+    for k in list(st.session_state.keys()):
+        if k.startswith("w_") or k in ("wizard_idx", "wizard_answers", "wizard_lang"):
+            del st.session_state[k]
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        patient_id = st.text_input(
-            t("patient_id", lang),
-            placeholder="MIG-001",
-            help=t("patient_id_hint", lang),
+
+def _commit_value(key: str, value):
+    """Store an answer and step forward (used by button clicks)."""
+    st.session_state["wizard_answers"][key] = value
+    st.session_state["wizard_idx"] += 1
+
+
+def _commit_widget(key: str, transform=None) -> None:
+    """on_change callback for text/number inputs that commit on Enter/blur."""
+    wkey = f"w_{key}"
+    val = st.session_state.get(wkey)
+    if val is None or (isinstance(val, str) and not val.strip()):
+        return
+    if transform is not None:
+        val = transform(val)
+    _commit_value(key, val)
+
+
+def build_steps(lang: str) -> list[dict]:
+    """One step per question for the new-record wizard.
+
+    Order: visit type → patient id → age → sex → questionnaires →
+    headache days → understanding → notes → review.
+
+    Language is asked once before the wizard starts (see new-record page).
+    Date is captured silently as today's date — no question.
+    """
+    steps: list[dict] = [
+        {"kind": "buttons", "key": "visit_type",
+         "prompt": VISIT_PROMPT[lang],
+         "options": VISIT_BUTTONS[lang],
+         "values": VISIT_STORAGE},
+        {"kind": "text", "key": "patient_id", "label": t("patient_id", lang),
+         "hint": t("patient_id_hint", lang), "placeholder": "MIG-001"},
+        {"kind": "number", "key": "age", "label": t("age", lang),
+         "min": 0, "max": 120, "step": 1},
+        {"kind": "buttons", "key": "sex", "label": t("sex", lang),
+         "options": Q.UI["sex_options"][lang]},
+    ]
+
+    for name, prompt_attr, section, use_emoji in [
+        ("HIT6", None, t("hit6", lang), True),
+        ("PHQ9", "PHQ9_PROMPT", t("phq9", lang), True),
+        ("GAD7", "GAD7_PROMPT", t("gad7", lang), True),
+        # MUCS: agree/disagree Likert. Skip emoji because items 7-9 are
+        # reverse-scored — a smile next to "I'm afraid of getting a headache"
+        # would conflict with the answer's actual meaning.
+        ("MUCS", "MUCS_PROMPT", t("mucs", lang), False),
+    ]:
+        items, options, values, _ = Q.get_questionnaire(name, lang)
+        prompt = getattr(Q, prompt_attr)[lang] if prompt_attr else None
+        for i, item in enumerate(items):
+            steps.append({
+                "kind": "item", "key": f"{name.lower()}_{i}",
+                "section": section, "prompt": prompt, "label": item,
+                "options": options, "values": values,
+                "i": i, "total": len(items),
+                "no_emoji": not use_emoji,
+            })
+
+    steps += [
+        {"kind": "number", "key": "headache_days",
+         "label": Q.HEADACHE_DAYS_LABEL[lang], "min": 0, "max": 31, "step": 1},
+        {"kind": "textarea", "key": "notes",
+         "label": "Notes (optional)", "optional": True},
+        {"kind": "review"},
+    ]
+    return steps
+
+
+def render_step(step: dict) -> tuple:
+    """Render one step.
+
+    Returns (value, answered, manual_next) where:
+      - value: current widget value (None for steps that commit via buttons)
+      - answered: whether a valid answer is present
+      - manual_next: True if the outer Next button should be shown
+    """
+    kind = step["kind"]
+    wkey = f"w_{step['key']}" if "key" in step else None
+
+    if kind == "text":
+        v = st.text_input(step["label"], placeholder=step.get("placeholder", ""),
+                          help=step.get("hint"), key=wkey,
+                          on_change=_commit_widget, args=(step["key"],))
+        return v, bool(v and v.strip()), True
+
+    if kind == "number":
+        v = st.number_input(step["label"], min_value=step["min"],
+                            max_value=step["max"], step=step["step"],
+                            value=None, key=wkey,
+                            on_change=_commit_widget, args=(step["key"],))
+        return v, v is not None, True
+
+    if kind == "slider":
+        v = st.slider(step["label"], step["min"], step["max"],
+                      step.get("default", step["min"]), key=wkey)
+        return v, True, True
+
+    if kind == "textarea":
+        v = st.text_area(step["label"], key=wkey)
+        return v, True, True
+
+    if kind == "buttons":
+        # Big full-width buttons, one per option. A click commits and advances.
+        # `prompt` (sentence) or `label` (short title) goes above the buttons.
+        # `values` (optional) lets the button label differ from the stored value.
+        # `container_key` (optional) wraps the buttons in a keyed container so
+        # CSS can target this specific group (used to enlarge the smileys).
+        container = (
+            st.container(key=step["container_key"])
+            if step.get("container_key") else st.container()
         )
-    with col2:
-        age = st.number_input(t("age", lang), min_value=0, max_value=120, step=1, value=30)
-    with col3:
-        sex = st.selectbox(t("sex", lang), Q.UI["sex_options"][lang])
+        with container:
+            st.markdown(f"### {step.get('prompt') or step.get('label', '')}")
+            storage = step.get("values") or step["options"]
+            for j, opt in enumerate(step["options"]):
+                st.button(
+                    opt, key=f"{wkey}_b{j}", use_container_width=True,
+                    on_click=_commit_value, args=(step["key"], storage[j]),
+                )
+        return None, False, False
 
-    col4, col5 = st.columns(2)
-    with col4:
-        visit_type = st.selectbox(t("visit_type", lang), Q.UI["visit_options"][lang])
-    with col5:
-        visit_date = st.date_input("Date", value=date.today())
-
-    # normalize visit_type to English for storage so cross-language data merges cleanly
-    visit_idx = Q.UI["visit_options"][lang].index(visit_type)
-    visit_type_en = Q.UI["visit_options"]["en"][visit_idx]
-
-    st.divider()
-    st.subheader(t("hit6", lang))
-    hit6_responses = render_questionnaire("HIT6", lang, "new")
-
-    st.divider()
-    st.subheader(t("phq9", lang))
-    st.caption(Q.PHQ9_PROMPT[lang])
-    phq9_responses = render_questionnaire("PHQ9", lang, "new")
-
-    st.divider()
-    st.subheader(t("gad7", lang))
-    st.caption(Q.GAD7_PROMPT[lang])
-    gad7_responses = render_questionnaire("GAD7", lang, "new")
-
-    st.divider()
-    st.subheader(t("other", lang))
-    col6, col7 = st.columns(2)
-    with col6:
-        headache_days = st.number_input(
-            Q.HEADACHE_DAYS_LABEL[lang], min_value=0, max_value=31, step=1, value=0
+    if kind == "item":
+        # Bold instrument banner at the top so the patient (and clinician)
+        # always knows which questionnaire they're on.
+        st.markdown(f"## {step['section']}")
+        st.caption(f"{step['i'] + 1} of {step['total']}")
+        if step.get("prompt"):
+            st.caption(step["prompt"])
+        st.markdown(f"### {step['label']}")
+        emojis = (
+            [] if step.get("no_emoji")
+            else EMOJI_BY_OPTION_COUNT.get(len(step["options"]), [])
         )
-    with col7:
-        understanding = st.slider(Q.UNDERSTANDING_LABEL[lang], 0, 10, 5)
+        for j, opt in enumerate(step["options"]):
+            label = f"{emojis[j]}  {opt}" if j < len(emojis) else opt
+            st.button(
+                label, key=f"{wkey}_b{j}", use_container_width=True,
+                on_click=_commit_value,
+                args=(step["key"], step["values"][j]),
+            )
+        return None, False, False
 
-    notes = st.text_area("Notes (optional)")
+    return None, True, True
 
-    st.divider()
 
-    # Live preview of scores
-    hit6_score, hit6_cat = scoring.score_hit6(hit6_responses)
-    phq9_score, phq9_cat = scoring.score_phq9(phq9_responses)
-    gad7_score, gad7_cat = scoring.score_gad7(gad7_responses)
-    suicidality = scoring.phq9_suicidality_flag(phq9_responses)
+def render_language_picker() -> None:
+    """First-screen language picker. Each language's question IS the button."""
 
-    sc1, sc2, sc3 = st.columns(3)
-    sc1.metric("HIT-6", hit6_score if hit6_cat != "Incomplete" else "—", hit6_cat)
-    sc2.metric("PHQ-9", phq9_score if phq9_cat != "Incomplete" else "—", phq9_cat)
-    sc3.metric("GAD-7", gad7_score if gad7_cat != "Incomplete" else "—", gad7_cat)
+    def _pick(code: str):
+        st.session_state["wizard_lang"] = code
+        st.session_state["wizard_idx"] = 0
+        st.session_state["wizard_answers"] = {}
+
+    st.button("Do you want it in English?", key="_lang_en",
+              use_container_width=True, on_click=_pick, args=("en",))
+    st.button("आपको हिंदी चाहिए क्या?", key="_lang_hi",
+              use_container_width=True, on_click=_pick, args=("hi",))
+    st.button("तुम्हाला मराठी पाहिजे का?", key="_lang_mr",
+              use_container_width=True, on_click=_pick, args=("mr",))
+
+
+# -------------------- wizard (the whole app) --------------------
+if "wizard_lang" not in st.session_state:
+    render_language_picker()
+    st.stop()
+
+lang = st.session_state["wizard_lang"]
+steps = build_steps(lang)
+total = len(steps)
+
+idx = st.session_state["wizard_idx"]
+step = steps[idx]
+answers = st.session_state["wizard_answers"]
+
+st.progress((idx + 1) / total, text=f"{idx + 1} / {total}")
+
+if step["kind"] == "review":
+    hit6 = [answers.get(f"hit6_{i}") for i in range(6)]
+    phq9 = [answers.get(f"phq9_{i}") for i in range(9)]
+    gad7 = [answers.get(f"gad7_{i}") for i in range(7)]
+    mucs = [answers.get(f"mucs_{i}") for i in range(9)]
+    hit6_score, hit6_cat = scoring.score_hit6(hit6)
+    phq9_score, phq9_cat = scoring.score_phq9(phq9)
+    gad7_score, gad7_cat = scoring.score_gad7(gad7)
+    mucs_score, mucs_cat = scoring.score_mucs(mucs)
+    suicidality = scoring.phq9_suicidality_flag(phq9)
+
+    st.subheader("Review")
+
+    st.markdown(f"### **HIT-6:** {hit6_score} — {hit6_cat}")
+    st.markdown(f"### **PHQ-9:** {phq9_score} — {phq9_cat}")
+    st.markdown(f"### **GAD-7:** {gad7_score} — {gad7_cat}")
+    st.markdown(f"### **MUCS:** {mucs_score} — {mucs_cat}")
 
     if suicidality:
         st.error(
@@ -145,117 +340,59 @@ if page == t("nav_new", lang):
             "Clinician review before the patient leaves the clinic."
         )
 
-    if st.button(t("submit", lang), type="primary"):
-        if not patient_id.strip():
-            st.error("Patient ID is required.")
-        elif "Incomplete" in (hit6_cat, phq9_cat, gad7_cat):
-            st.error("Please complete all questionnaire items before saving.")
-        else:
-            record = {
-                "patient_id": patient_id.strip(),
-                "age": int(age),
-                "sex": sex,
-                "language": lang,
-                "visit_type": visit_type_en,
-                "visit_date": visit_date.isoformat(),
-                "hit6_items": hit6_responses,
-                "hit6_score": hit6_score,
-                "hit6_category": hit6_cat,
-                "phq9_items": phq9_responses,
-                "phq9_score": phq9_score,
-                "phq9_category": phq9_cat,
-                "phq9_suicidality": suicidality,
-                "gad7_items": gad7_responses,
-                "gad7_score": gad7_score,
-                "gad7_category": gad7_cat,
-                "headache_days": int(headache_days),
-                "understanding_score": int(understanding),
-                "notes": notes.strip() or None,
-            }
-            rec_id = db.save_record(record)
-            st.success(f"{t('saved', lang)} (id={rec_id})")
+    st.caption(f"Patient: {answers.get('patient_id')} · age {answers.get('age')} · {answers.get('sex')}")
+    st.caption(f"Visit: {answers.get('visit_type')} (today)")
+    st.caption(f"Headache days/month: {answers.get('headache_days')}")
+    if answers.get("notes"):
+        st.caption(f"Notes: {answers['notes']}")
 
+    col_back, col_save = st.columns(2)
+    if col_back.button("← Back", key="wiz_review_back"):
+        st.session_state["wizard_idx"] -= 1
+        st.rerun()
+    if col_save.button(t("submit", lang), type="primary", key="wiz_save"):
+        record = {
+            "patient_id": answers["patient_id"].strip(),
+            "age": int(answers["age"]),
+            "sex": answers["sex"],
+            "language": lang,
+            "visit_type": answers["visit_type"],
+            "visit_date": date.today().isoformat(),
+            "hit6_items": hit6,
+            "hit6_score": hit6_score,
+            "hit6_category": hit6_cat,
+            "phq9_items": phq9,
+            "phq9_score": phq9_score,
+            "phq9_category": phq9_cat,
+            "phq9_suicidality": suicidality,
+            "gad7_items": gad7,
+            "gad7_score": gad7_score,
+            "gad7_category": gad7_cat,
+            "mucs_items": mucs,
+            "mucs_score": mucs_score,
+            "mucs_category": mucs_cat,
+            "headache_days": int(answers["headache_days"]),
+            "notes": (answers.get("notes") or "").strip() or None,
+        }
+        rec_id = db.save_record(record)
+        st.success(f"{t('saved', lang)} (id={rec_id})")
+        _reset_wizard()
+        st.button("Enter another record", on_click=lambda: None)
+else:
+    value, answered, manual_next = render_step(step)
 
-# -------------------- page: baseline vs follow-up --------------------
-elif page == t("nav_followup", lang):
-    st.header(t("nav_followup", lang))
+    # Bottom button row — Back available after step 0; Next only
+    # shown for kinds that need a manual commit (text/number/slider/notes).
+    col_back, col_next = st.columns(2)
+    if idx > 0:
+        if col_back.button("← Back", key=f"wiz_back_{idx}"):
+            st.session_state["wizard_idx"] -= 1
+            st.rerun()
 
-    ids = db.list_patient_ids()
-    if not ids:
-        st.info("No records yet.")
-    else:
-        pid = st.selectbox("Patient ID", ids)
-        baseline = db.latest_visit(pid, "Baseline")
-        followup = db.latest_visit(pid, "Follow-up")
-
-        if not baseline:
-            st.warning("No baseline record for this patient.")
-        if not followup:
-            st.info("No follow-up record yet for this patient.")
-
-        if baseline and followup:
-            rows = []
-            for name, b_key, f_key, mcid_key in [
-                ("HIT-6", "hit6_score", "hit6_score", "HIT6"),
-                ("PHQ-9", "phq9_score", "phq9_score", "PHQ9"),
-                ("GAD-7", "gad7_score", "gad7_score", "GAD7"),
-            ]:
-                b = baseline[b_key]
-                f = followup[f_key]
-                verdict = scoring.change_label(b, f, scoring.MCID[mcid_key])
-                rows.append({"Measure": name, "Baseline": b, "Follow-up": f, "Change": f - b, "Verdict": verdict})
-
-            b_days = baseline["headache_days"]
-            f_days = followup["headache_days"]
-            rows.append({
-                "Measure": "Headache days/month",
-                "Baseline": b_days,
-                "Follow-up": f_days,
-                "Change": f_days - b_days,
-                "Verdict": "Reduced" if f_days < b_days else ("Increased" if f_days > b_days else "Unchanged"),
-            })
-
-            b_u = baseline["understanding_score"]
-            f_u = followup["understanding_score"]
-            rows.append({
-                "Measure": "Understanding (0–10)",
-                "Baseline": b_u,
-                "Follow-up": f_u,
-                "Change": f_u - b_u,
-                "Verdict": "Improved" if f_u > b_u else ("Worse" if f_u < b_u else "Unchanged"),
-            })
-
-            df = pd.DataFrame(rows)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-
-            st.caption(
-                f"Baseline visit: {baseline['visit_date']} · "
-                f"Follow-up visit: {followup['visit_date']}"
-            )
-
-
-# -------------------- page: export --------------------
-elif page == t("nav_export", lang):
-    st.header(t("nav_export", lang))
-    df = db.all_records_dataframe()
-    st.write(f"{len(df)} records in database.")
-    if not df.empty:
-        st.dataframe(df.head(20), use_container_width=True)
-
-        csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            "Download CSV",
-            data=csv_bytes,
-            file_name="migraine_study.csv",
-            mime="text/csv",
-        )
-
-        buf = BytesIO()
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            df.to_excel(writer, sheet_name="records", index=False)
-        st.download_button(
-            "Download Excel",
-            data=buf.getvalue(),
-            file_name="migraine_study.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+    if manual_next:
+        can_advance = answered or step.get("optional", False)
+        if col_next.button("Next →", key=f"wiz_next_{idx}",
+                           type="primary", disabled=not can_advance):
+            answers[step["key"]] = value
+            st.session_state["wizard_idx"] += 1
+            st.rerun()
