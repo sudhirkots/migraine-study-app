@@ -169,11 +169,13 @@ def _commit_value(key: str, value):
     st.session_state["wizard_idx"] += 1
 
 
-def _commit_widget(key: str, transform=None) -> None:
+def _commit_widget(key: str, transform=None, prefill: str = "") -> None:
     """on_change callback for text/number inputs that commit on Enter/blur."""
     wkey = f"w_{key}"
     val = st.session_state.get(wkey)
     if val is None or (isinstance(val, str) and not val.strip()):
+        return
+    if prefill and isinstance(val, str) and val.strip() == prefill.strip():
         return
     if transform is not None:
         val = transform(val)
@@ -195,7 +197,8 @@ def build_steps(lang: str) -> list[dict]:
          "options": VISIT_BUTTONS[lang],
          "values": VISIT_STORAGE},
         {"kind": "text", "key": "patient_id", "label": t("patient_id", lang),
-         "hint": t("patient_id_hint", lang), "placeholder": "MIG-001"},
+         "hint": t("patient_id_hint", lang), "placeholder": "MIG-001",
+         "prefill": "MIG-"},
         {"kind": "number", "key": "age", "label": t("age", lang),
          "min": 0, "max": 120, "step": 1},
         {"kind": "buttons", "key": "sex", "label": t("sex", lang),
@@ -244,10 +247,15 @@ def render_step(step: dict) -> tuple:
     wkey = f"w_{step['key']}" if "key" in step else None
 
     if kind == "text":
+        prefill = step.get("prefill", "")
+        if prefill and wkey not in st.session_state:
+            st.session_state[wkey] = prefill
         v = st.text_input(step["label"], placeholder=step.get("placeholder", ""),
                           help=step.get("hint"), key=wkey,
-                          on_change=_commit_widget, args=(step["key"],))
-        return v, bool(v and v.strip()), True
+                          on_change=_commit_widget,
+                          kwargs={"key": step["key"], "prefill": prefill})
+        answered = bool(v and v.strip()) and (not prefill or v.strip() != prefill.strip())
+        return v, answered, True
 
     if kind == "number":
         v = st.number_input(step["label"], min_value=step["min"],
