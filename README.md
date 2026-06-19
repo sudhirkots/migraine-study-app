@@ -21,9 +21,10 @@ Sheet you own. A shared password gates access.
 
 ### Live URL
 
-After deployment (see below) you'll get a URL like
-`https://<name>.streamlit.app`. Open it on your phone, sign in once, then
-"Add to Home Screen" so it behaves like an installed app.
+<https://migraine-study-app.streamlit.app/>
+
+Open it on your phone, sign in once, then "Add to Home Screen" so it
+behaves like an installed app.
 
 ## One-time setup
 
